@@ -33,7 +33,17 @@ export class AuthController {
         this.authService.loginUser( loginUserDto! )
             .then( user => res.status(200).json( user ) )
             .catch( error => handleError( error, res ) );
+    }
 
+    validateToken = ( req: Request, res: Response ) => {
+
+        const { token } = req.params;
+
+        if( !token ) res.status(400).json({ error: 'Token not provided' });
+
+        this.authService.validateTokenFromEmail( token )
+            .then( resp => res.status(200).json( resp ) )
+            .catch( error => handleError( error, res ) );
 
     }
 
