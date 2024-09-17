@@ -1,5 +1,6 @@
 import { BcryptAdapter } from "../../adapters/bcrypt.adapter";
 import { JWTAdapter } from "../../adapters/jwt.adapter";
+import { envs } from "../../config/envs";
 import { UserModel } from "../../data/mongo/models/user.model";
 import { LoginUserDto } from "../../domain/dtos/auth/login-user.dto";
 import { RegisterUserDto } from "../../domain/dtos/auth/register-user.dto";
@@ -33,7 +34,13 @@ export class AuthService {
             const token = await JWTAdapter.generateToken({ id: newUser.id });
             if( !token ) throw CustomError.internalError('Problems generating token');
 
-            this.sendValidationEmail( newUser.email );
+            if( envs.SEND_EMAIL ) {
+                this.sendValidationEmail( newUser.email );
+            } else {
+                newUser.isVerified = true;
+                userEntity.isVerified = true
+                await newUser.save();
+            }
 
             return {
                 user: userEntity,
@@ -79,6 +86,9 @@ export class AuthService {
 
         try {
             const payload = await JWTAdapter.validateToken<{ email: string }>( token );
+
+            if( !payload ) throw CustomError.unauthorized('Token is not valid');
+
             const { email } = payload as { email: string };
             if( !email ) throw CustomError.unauthorized('Token is not valid');
 
